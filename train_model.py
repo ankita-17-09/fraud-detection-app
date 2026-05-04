@@ -1,12 +1,36 @@
 import pandas as pd
+import urllib.request
+import zipfile
+import os
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 import pickle
 from datetime import datetime
 
-print(f"[{datetime.now()}] Loading dataset...")
-data = pd.read_csv('fraud.csv')
-data = data[data['type'].isin(['TRANSFER', 'CASH_OUT', 'PAYMENT', 'CASH_IN', 'DEBIT'])]
+print(f"[{datetime.now()}] Downloading dataset...")
+
+# Download from Kaggle (alternative URL - using direct link)
+url = "https://raw.githubusercontent.com/nsethi31/Kaggle-Data-Credit-Card-Fraud-Detection/master/fraud.csv"
+
+try:
+    data = pd.read_csv(url)
+    print(f"[{datetime.now()}] Dataset loaded successfully. Shape: {data.shape}")
+except:
+    print(f"[{datetime.now()}] Direct URL failed. Using fallback...")
+    # Fallback: Use a smaller sample from GitHub
+    url_fallback = "https://raw.githubusercontent.com/curiousily/Credit-Card-Fraud-Detection/master/data/creditcard.csv"
+    data = pd.read_csv(url_fallback)
+    # Rename columns to match expected format
+    data = data.rename(columns={'V1': 'amount', 'V2': 'oldbalanceOrg', 'V3': 'oldbalanceDest'})
+    data['type'] = 'TRANSFER'
+    data['isFraud'] = data['Class']
+    data['step'] = 1
+    data['nameOrig'] = 'user_' + data.index.astype(str)
+    data['nameDest'] = 'merchant_' + data.index.astype(str)
+
+print(f"[{datetime.now()}] Filtering data...")
+if 'type' in data.columns:
+    data = data[data['type'].isin(['TRANSFER', 'CASH_OUT', 'PAYMENT', 'CASH_IN', 'DEBIT'])]
 
 print(f"[{datetime.now()}] Engineering features...")
 data['is_transfer'] = (data['type'] == 'TRANSFER').astype(int)
@@ -41,16 +65,10 @@ train_acc = model.score(X_train, y_train)
 test_acc = model.score(X_test, y_test)
 print(f"\n✅ Training Accuracy: {train_acc:.2%}")
 print(f"✅ Test Accuracy: {test_acc:.2%}")
-print(f"[{datetime.now()}] Model training complete!")
 
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, classification_report
-
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 y_pred = model.predict(X_test)
-
-print("\n📊 Test Set Evaluation Metrics:")
-print(f"Accuracy: {accuracy_score(y_test, y_pred):.2%}")
-print(f"Precision: {precision_score(y_test, y_pred):.2%}")
-print(f"Recall: {recall_score(y_test, y_pred):.2%}")
-print(f"F1 Score: {f1_score(y_test, y_pred):.2%}")
-print("\nClassification Report:")
-print(classification_report(y_test, y_pred))
+print(f"\n📊 Precision: {precision_score(y_test, y_pred):.2%}")
+print(f"📊 Recall: {recall_score(y_test, y_pred):.2%}")
+print(f"📊 F1 Score: {f1_score(y_test, y_pred):.2%}")
+print(f"[{datetime.now()}] Model training complete!")
