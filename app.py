@@ -1,3 +1,7 @@
+import os
+if not os.path.exists('model.pkl'):
+    os.system('python3 train_model.py')
+
 import streamlit as st
 import pickle
 import numpy as np
